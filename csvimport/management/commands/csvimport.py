@@ -77,6 +77,7 @@ class Command(LabelCommand):
         self.deduplicate = True
         self.csvfile = []
         self.charset = ''
+        self.callback = None
 
     def handle_label(self, label, **options):
         """ Handle the circular reference by passing the nested
@@ -102,7 +103,8 @@ class Command(LabelCommand):
         return
 
     def setup(self, mappings, modelname, charset, csvfile='', defaults='',
-              uploaded=None, nameindexes=False, deduplicate=True):
+              uploaded=None, nameindexes=False, deduplicate=True,
+              callback=None):
         """ Setup up the attributes for running the import """
         self.defaults = self.__mappings(defaults)
         if modelname.find('.') > -1:
@@ -119,6 +121,16 @@ class Command(LabelCommand):
             self.csvfile = self.__csvfile(uploaded.path)
         else:    
             self.check_filesystem(csvfile)
+        if callback:
+            try:
+                f_module, f_name = callback.rsplit('.', 1)
+                module = __import__(f_module, fromlist=[f_name])
+                self.callback = getattr(module, f_name)
+                self.loglist.append('Using callback function "%s"' % 
+                        self.callback.__name__)
+            except Exception, err:
+                self.loglist.append('Exception while importing callback '
+                        '"%s" : %s' % (callback, err))
 
     def check_fkey(self, key, field):
         """ Build fkey mapping via introspection of models """
@@ -261,8 +273,17 @@ class Command(LabelCommand):
                     pass
             try:
                 model_instance.save()
+                pass
             except Exception, err:
                 self.loglist.append('Exception found... %s Instance %s not saved.' % (err, counter))
+
+            if self.callback:
+                try:
+                    self.callback(model_instance)
+                except Exception, err:
+                    self.loglist.append('Exception while executing callback '
+                            '"%s" on %s : %s' % (self.callback, counter, err))
+
         if self.loglist:
             self.props = { 'file_name':self.file_name,
                            'import_user':'cron',

@@ -1,3 +1,4 @@
+import re
 from django.db import models
 from django.conf import settings 
 from django.core.files.storage import FileSystemStorage
@@ -25,6 +26,11 @@ class CSVImport(models.Model):
     encoding = models.CharField(max_length=32, blank=True)
     upload_method = models.CharField(blank=False, max_length=50, 
                                      default='manual', choices=CHOICES)    
+    callback = models.CharField(max_length=255, blank=True, 
+                                   help_text='''The full dot path to a python
+                                   function that will be called on
+                                   every instance of the model that is saved.
+                                   eg. "contacts.utils.add_tags"''')
     error_log = models.TextField(help_text='Each line is an import error')
     import_date = models.DateField(auto_now=True)
     import_user = models.CharField(max_length=255, default='anonymous',

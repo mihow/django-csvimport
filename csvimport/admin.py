@@ -18,6 +18,7 @@ class CSVImportAdmin(ModelAdmin):
                 'upload_file',
                 'file_name',
                 'encoding',
+                'callback',
                 'upload_method',
                 'error_log_html',
                 'import_user']
@@ -41,7 +42,8 @@ class CSVImportAdmin(ModelAdmin):
                       modelname=obj.model_name, 
                       charset=obj.encoding,
                       uploaded=obj.upload_file,
-                      defaults=defaults)
+                      defaults=defaults,
+                      callback=obj.callback,)
         errors = cmd.run(logid=obj.id)
         if errors:
             obj.error_log = '\n'.join(errors)
